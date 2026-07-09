@@ -11,8 +11,18 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 ```
 
-The repo includes `db.sqlite3` with sample data and a superuser
-(`admin` / `admin`), so no migrate/createsuperuser needed to get started.
+The repo includes `db.sqlite3` with sample data and two accounts, so no
+migrate/createsuperuser needed to get started:
+
+| Account | Login | Password |
+|---|---|---|
+| admin (staff) | `admin@example.com` | `admin` |
+| demo shop user | `student@example.com` | `correct-horse-battery` |
+
+Login is email-based — the project uses a custom user model
+(`accounts.User`, no username column). Swapping `AUTH_USER_MODEL` is only
+cheap before the first real migration of user data, which is why it was
+done early.
 
 ## Run
 
@@ -32,6 +42,7 @@ cd frontend && python3 -m http.server 3000
 
 | App | Model | Notes |
 |---|---|---|
+| accounts | User | custom, email login, no username |
 | products | Category | flat, FK'd from Product |
 | products | Product | price as Decimal, stock, is_active |
 | products | ProductImage | one-to-many gallery, Pillow-backed |
@@ -62,6 +73,16 @@ thing to `POST /api/orders/`.
 | `POST /api/orders/<uuid>/pay/` | fake payment, pending → paid |
 | `POST /api/orders/<uuid>/cancel/` | restores stock, → cancelled |
 | `POST /api/coupons/validate/` | `{code}` → coupon details or 404 |
+| `POST /api/auth/register/` | email + password → token (auto-login) |
+| `POST /api/auth/login/` | email + password → token |
+| `POST /api/auth/logout/` | deletes the token |
+| `GET /api/auth/me/` | current user |
+| `GET /api/orders/` | authenticated: your orders only |
+| CRUD `/api/addresses/` | authenticated: your address book |
+
+Auth is DRF TokenAuthentication: the frontend stores the token in
+localStorage and sends `Authorization: Token <key>`. Guest checkout
+still works — orders just get `user = null`.
 
 Seeded coupons to play with: `WELCOME10` (10 % off), `FLAT5` (5 € off),
 `EXPIRED10` (deliberately expired).
@@ -70,4 +91,5 @@ Seeded coupons to play with: `WELCOME10` (10 % off), `FLAT5` (5 € off),
 
 Zero-build vanilla JS with hash routing: catalog with category filter,
 product detail with reviews, localStorage cart, coupon + checkout form,
-and an order page with pay/cancel actions.
+an order page with pay/cancel actions, and an account page with login,
+registration, order history, and an address book that prefills checkout.

@@ -20,9 +20,17 @@ function stars(rating) {
   return '★'.repeat(n) + '☆'.repeat(5 - n);
 }
 
+function auth() {
+  return JSON.parse(localStorage.getItem('auth') || 'null');
+}
+
 async function api(path, options = {}) {
+  const a = auth();
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(a ? { Authorization: `Token ${a.token}` } : {}),
+    },
     ...options,
   });
   const body = res.status === 204 ? null : await res.json();
@@ -62,6 +70,23 @@ function updateCartBadge() {
   const n = cart.count();
   badge.textContent = n;
   badge.hidden = n === 0;
+}
+
+// ---------- auth state ----------
+
+function setAuth(token, user) {
+  localStorage.setItem('auth', JSON.stringify({ token, email: user.email }));
+  updateNav();
+}
+
+function clearAuth() {
+  localStorage.removeItem('auth');
+  updateNav();
+}
+
+function updateNav() {
+  const a = auth();
+  document.getElementById('nav-account').textContent = a ? a.email : 'login';
 }
 
 // ---------- views ----------
@@ -223,6 +248,23 @@ async function cartView() {
       <p class="error" id="checkout-error"></p>
     </form>`;
 
+  if (auth()) {
+    // prefill checkout from the account, but never clobber typed values
+    Promise.all([api('/auth/me/'), api('/addresses/')]).then(([me, addrs]) => {
+      const form = document.getElementById('checkout');
+      if (!form) return;
+      form.full_name.value ||= `${me.first_name} ${me.last_name}`.trim();
+      form.email.value ||= me.email;
+      const a = addrs[0];
+      if (a) {
+        form.street.value ||= a.street;
+        form.city.value ||= a.city;
+        form.zip_code.value ||= a.zip_code;
+        form.country.value = a.country;
+      }
+    }).catch(() => {});
+  }
+
   app.querySelectorAll('[data-qty]').forEach(input =>
     input.addEventListener('change', () => {
       cart.setQty(Number(input.dataset.qty), Number(input.value) || 0);
@@ -259,6 +301,124 @@ async function cartView() {
       location.hash = `#/order/${order.id}`;
     } catch (err) {
       document.getElementById('checkout-error').textContent = apiErrorText(err);
+    }
+  });
+}
+
+function authView() {
+  app.innerHTML = `
+    <h1>account</h1>
+    <div class="auth-grid">
+      <form id="login-form" class="review-form">
+        <h2>log in</h2>
+        <input name="email" type="email" placeholder="email" required>
+        <input name="password" type="password" placeholder="password" required>
+        <div><button type="submit">log in</button></div>
+        <p class="error" id="login-error"></p>
+      </form>
+      <form id="register-form" class="review-form">
+        <h2>register</h2>
+        <div class="row">
+          <input name="first_name" placeholder="first name">
+          <input name="last_name" placeholder="last name">
+        </div>
+        <input name="email" type="email" placeholder="email" required>
+        <input name="password" type="password" placeholder="password" required>
+        <div><button type="submit" class="secondary">create account</button></div>
+        <p class="error" id="register-error"></p>
+      </form>
+    </div>`;
+
+  const wire = (formId, path, errorId) =>
+    document.getElementById(formId).addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        const res = await api(path, {
+          method: 'POST',
+          body: JSON.stringify(Object.fromEntries(new FormData(e.target))),
+        });
+        setAuth(res.token, res.user);
+        route();
+      } catch (err) {
+        document.getElementById(errorId).textContent = apiErrorText(err);
+      }
+    });
+  wire('login-form', '/auth/login/', 'login-error');
+  wire('register-form', '/auth/register/', 'register-error');
+}
+
+async function accountView() {
+  let me;
+  try {
+    me = await api('/auth/me/');
+  } catch {
+    clearAuth(); // stale token
+    authView();
+    return;
+  }
+  const [orders, addresses] = await Promise.all([api('/orders/'), api('/addresses/')]);
+
+  app.innerHTML = `
+    <h1>hi, ${esc(me.first_name || me.email)}</h1>
+    <p class="muted">${esc(me.email)} · <button class="small secondary" id="logout">log out</button></p>
+
+    <h2>my orders</h2>
+    ${orders.length ? `<table>
+      <tr><th>placed</th><th>status</th><th class="num">total</th><th></th></tr>
+      ${orders.map(o => `
+        <tr>
+          <td>${new Date(o.created_at).toLocaleString()}</td>
+          <td><span class="status-pill status-${esc(o.status)}">${esc(o.status)}</span></td>
+          <td class="num">${money(o.total)}</td>
+          <td><a href="#/order/${esc(o.id)}">view</a></td>
+        </tr>`).join('')}
+    </table>` : '<p class="muted">no orders yet</p>'}
+
+    <h2>addresses</h2>
+    ${addresses.length ? addresses.map(a => `
+      <div class="review">
+        <div class="head">
+          <strong>${esc(a.label)}</strong>
+          <button class="small secondary" data-del-addr="${a.id}">delete</button>
+        </div>
+        ${esc(a.street)}, ${esc(a.zip_code)} ${esc(a.city)}, ${esc(a.country)}
+      </div>`).join('') : '<p class="muted">no saved addresses</p>'}
+
+    <h2>add address</h2>
+    <form class="review-form" id="address-form">
+      <input name="label" placeholder="label (home, office…)" required>
+      <input name="street" placeholder="street" required>
+      <div class="row">
+        <input name="city" placeholder="city" required>
+        <input name="zip_code" placeholder="zip" required>
+      </div>
+      <input name="country" value="CZ" maxlength="2" required>
+      <div><button type="submit">save address</button></div>
+      <p class="error" id="address-error"></p>
+    </form>`;
+
+  document.getElementById('logout').addEventListener('click', async () => {
+    try { await api('/auth/logout/', { method: 'POST' }); } catch { /* token already dead */ }
+    clearAuth();
+    route();
+  });
+
+  app.querySelectorAll('[data-del-addr]').forEach(btn =>
+    btn.addEventListener('click', async () => {
+      await api(`/addresses/${btn.dataset.delAddr}/`, { method: 'DELETE' });
+      accountView();
+    }));
+
+  document.getElementById('address-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      await api('/addresses/', {
+        method: 'POST',
+        body: JSON.stringify(Object.fromEntries(new FormData(e.target))),
+      });
+      accountView();
+    } catch (err) {
+      document.getElementById('address-error').textContent = apiErrorText(err);
     }
   });
 }
@@ -320,6 +480,7 @@ async function route() {
     if (segments[0] === 'product' && segments[1]) await productView(segments[1]);
     else if (segments[0] === 'cart') await cartView();
     else if (segments[0] === 'order' && segments[1]) await orderView(segments[1]);
+    else if (segments[0] === 'account') await (auth() ? accountView() : authView());
     else await homeView(new URLSearchParams(query).get('category'));
   } catch (err) {
     app.innerHTML = `<p class="error">something broke: ${esc(err.body?.detail || err.message)} — is the API running on :8000?</p>`;
@@ -329,4 +490,5 @@ async function route() {
 
 window.addEventListener('hashchange', route);
 updateCartBadge();
+updateNav();
 route();

@@ -104,3 +104,7 @@ td.num, th.num { text-align: right; }
 .status-shipped { background: #dbeafe; color: #1e40af; }
 .status-cancelled { background: #fee2e2; color: #991b1b; }
 .actions { display: flex; gap: .75rem; margin-top: 1.25rem; }
+
+/* account */
+.auth-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; max-width: 800px; }
+@media (max-width: 700px) { .auth-grid { grid-template-columns: 1fr; } }

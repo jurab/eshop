@@ -3,16 +3,17 @@ import uuid
 from django.db import transaction
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Coupon, Order, Payment
-from .serializers import (CouponCheckSerializer, OrderCreateSerializer,
-                          OrderSerializer)
+from .models import Address, Coupon, Order, Payment
+from .serializers import (AddressSerializer, CouponCheckSerializer,
+                          OrderCreateSerializer, OrderSerializer)
 
 
 class OrderViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin,
-                   viewsets.GenericViewSet):
+                   mixins.ListModelMixin, viewsets.GenericViewSet):
     queryset = Order.objects.prefetch_related('items').select_related(
         'coupon', 'payment')
 
@@ -20,6 +21,22 @@ class OrderViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin,
         if self.action == 'create':
             return OrderCreateSerializer
         return OrderSerializer
+
+    def get_permissions(self):
+        # guests may create and view-by-uuid; the list is yours alone
+        if self.action == 'list':
+            return [IsAuthenticated()]
+        return [AllowAny()]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if self.action == 'list':
+            return qs.filter(user=self.request.user)
+        return qs
+
+    def perform_create(self, serializer):
+        user = self.request.user if self.request.user.is_authenticated else None
+        serializer.save(user=user)
 
     @action(detail=True, methods=['post'])
     def pay(self, request, pk=None):
@@ -43,6 +60,17 @@ class OrderViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin,
         with transaction.atomic():
             order.cancel()
         return Response(OrderSerializer(order, context={'request': request}).data)
+
+
+class AddressViewSet(viewsets.ModelViewSet):
+    serializer_class = AddressSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Address.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
 class CouponValidateView(APIView):

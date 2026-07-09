@@ -4,7 +4,13 @@ from rest_framework import serializers
 
 from products.models import Product
 
-from .models import Coupon, Order, OrderItem, Payment
+from .models import Address, Coupon, Order, OrderItem, Payment
+
+
+class AddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Address
+        fields = ['id', 'label', 'street', 'city', 'zip_code', 'country']
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
