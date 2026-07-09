@@ -36,7 +36,9 @@ make test-db
 
 Full request/response cycle through the DRF stack (routing, auth, serializers,
 permissions) using `APIClient`. Guest checkout, pay/cancel transitions, token
-auth, and per-user data isolation.
+auth, and per-user data isolation. Also Django admin smoke tests: every page
+of every registered admin must render, discovered from `admin.site._registry`
+so new models are covered automatically.
 
 ```bash
 make test-api
@@ -136,9 +138,10 @@ tests/
 ├── db/                   ← real ORM, transaction-wrapped
 │   ├── test_stock.py      ← atomic reservation + rollback paths
 │   └── test_snapshots.py  ← order history vs product/coupon edits
-├── api/                  ← full DRF request cycle
+├── api/                  ← full request cycle (DRF + admin)
 │   ├── test_shop_flow.py  ← browse → order → pay → cancel
-│   └── test_auth.py       ← tokens, permissions, data isolation
+│   ├── test_auth.py       ← tokens, permissions, data isolation
+│   └── test_admin.py      ← every registered admin page renders
 ├── arch/                 ← import-direction rules (ratcheted)
 │   ├── allowlist.py
 │   └── test_imports.py
