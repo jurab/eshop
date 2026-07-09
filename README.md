@@ -9,9 +9,10 @@ Example project for the **Practical Use of AI** course.
 ```sh
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-.venv/bin/python manage.py migrate
-.venv/bin/python manage.py createsuperuser
 ```
+
+The repo includes `db.sqlite3` with sample products and a superuser
+(`admin` / `admin`), so no migrate/createsuperuser needed to get started.
 
 ## Run
 
