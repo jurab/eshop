@@ -4,7 +4,6 @@ __pycache__/
 .venv/
 
 # django
-/media/
 /staticfiles/
 
 # os / editor
