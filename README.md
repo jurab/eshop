@@ -2,6 +2,8 @@
 
 Django + DRF backend with a plain HTML/JS frontend.
 
+Example project for the **Practical Use of AI** course.
+
 ## Setup
 
 ```sh
