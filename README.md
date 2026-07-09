@@ -87,6 +87,16 @@ still works — orders just get `user = null`.
 Seeded coupons to play with: `WELCOME10` (10 % off), `FLAT5` (5 € off),
 `EXPIRED10` (deliberately expired).
 
+## Tests
+
+```sh
+make test        # fast unit tests
+make test-all    # meta, arch, unit, db, api — everything
+```
+
+See [tests/readme.md](tests/readme.md) for the suite layout, ratchet policy,
+and test quality guidelines.
+
 ## Frontend
 
 Zero-build vanilla JS with hash routing: catalog with category filter,
