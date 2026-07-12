@@ -2,10 +2,17 @@ from decimal import Decimal
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
 from products.models import Product
+
+
+@pytest.fixture(autouse=True)
+def _fresh_cache():
+    # Throttle state lives in the (process-wide) cache; isolate tests.
+    cache.clear()
 
 
 @pytest.fixture
