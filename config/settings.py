@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -137,3 +138,26 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # Dev only: the plain html/js frontend is served from a different origin
 CORS_ALLOW_ALL_ORIGINS = True
+
+
+# Error monitoring (Sentry)
+# https://docs.sentry.io/platforms/python/integrations/django/
+
+# The DSN is a public client key, not a secret; set SENTRY_DSN='' to disable.
+SENTRY_DSN = os.environ.get(
+    'SENTRY_DSN',
+    'https://8f199f338cd4d3067f7969f1689ee28d@o4511723247763456.ingest.de.sentry.io/4511723269587024',
+)
+
+if 'PYTEST_VERSION' in os.environ:
+    SENTRY_DSN = ''  # never report from test runs
+
+if SENTRY_DSN:
+    import sentry_sdk
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment='development' if DEBUG else 'production',
+        send_default_pii=True,  # attach the request user (id, email) to events
+        traces_sample_rate=1.0,  # lower this if production traffic ever matters
+    )

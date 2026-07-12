@@ -6,6 +6,10 @@ __pycache__/
 # django
 /staticfiles/
 
+# local env / secrets
+.envrc
+.env
+
 # os / editor
 .DS_Store
 .idea/
