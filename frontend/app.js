@@ -451,8 +451,10 @@ async function orderView(id) {
     <p class="muted">ships to: ${esc(o.full_name)}, ${esc(o.street)}, ${esc(o.zip_code)} ${esc(o.city)}, ${esc(o.country)}</p>
     ${o.payment ? `<p class="muted">paid via ${esc(o.payment.provider)} — tx ${esc(o.payment.transaction_id)}</p>` : ''}
 
+    <div id="payment-ui"></div>
+
     <div class="actions">
-      ${o.status === 'pending' ? '<button id="pay">pay now (fake provider)</button>' : ''}
+      ${o.status === 'pending' ? '<button id="pay">pay now</button>' : ''}
       ${['pending', 'paid'].includes(o.status) ? '<button class="secondary" id="cancel">cancel order</button>' : ''}
     </div>
     <p class="error" id="order-error"></p>`;
@@ -465,8 +467,55 @@ async function orderView(id) {
       document.getElementById('order-error').textContent = apiErrorText(err);
     }
   };
-  document.getElementById('pay')?.addEventListener('click', act('pay'));
+  document.getElementById('pay')?.addEventListener('click', async () => {
+    try {
+      const res = await api(`/orders/${o.id}/pay/`, { method: 'POST' });
+      if (res.client_secret) mountPaymentElement(o, res);
+      else orderView(id); // fake provider: paid instantly
+    } catch (err) {
+      document.getElementById('order-error').textContent = apiErrorText(err);
+    }
+  });
   document.getElementById('cancel')?.addEventListener('click', act('cancel'));
+}
+
+function mountPaymentElement(o, { client_secret, publishable_key }) {
+  const stripe = Stripe(publishable_key);
+  const elements = stripe.elements({ clientSecret: client_secret });
+
+  document.getElementById('pay').hidden = true;
+  const box = document.getElementById('payment-ui');
+  box.innerHTML = `
+    <div class="payment-box">
+      <div id="payment-element"></div>
+      <button id="pay-submit">pay ${money(o.total)}</button>
+    </div>`;
+  elements.create('payment').mount('#payment-element');
+
+  document.getElementById('pay-submit').addEventListener('click', async () => {
+    const btn = document.getElementById('pay-submit');
+    const errBox = document.getElementById('order-error');
+    btn.disabled = true;
+    errBox.textContent = '';
+    // card payments settle in-page; redirect methods bounce back to this url
+    const { error } = await stripe.confirmPayment({
+      elements,
+      redirect: 'if_required',
+      confirmParams: { return_url: location.href },
+    });
+    if (error) {
+      errBox.textContent = error.message;
+      btn.disabled = false;
+      return;
+    }
+    try {
+      // webhook is the source of truth; this is the sync fallback for dev
+      await api(`/orders/${o.id}/confirm_payment/`, { method: 'POST' });
+    } catch (err) {
+      errBox.textContent = apiErrorText(err);
+    }
+    orderView(o.id);
+  });
 }
 
 // ---------- router ----------

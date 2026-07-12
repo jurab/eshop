@@ -150,6 +150,22 @@ MEDIA_ROOT = BASE_DIR / 'media'
 CORS_ALLOW_ALL_ORIGINS = True
 
 
+# Payments (Stripe)
+# Embedded Payment Element flow. The secret key lives in the environment
+# (.envrc, gitignored) — never in this file. With no key configured the
+# pay endpoint falls back to the instant fake provider.
+
+STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
+STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', '')
+STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
+STRIPE_CURRENCY = 'eur'  # the frontend renders prices in €
+
+if 'PYTEST_VERSION' in os.environ:
+    # tests exercise the fake provider or mock stripe explicitly
+    STRIPE_SECRET_KEY = ''
+    STRIPE_WEBHOOK_SECRET = ''
+
+
 # Error monitoring (Sentry)
 # https://docs.sentry.io/platforms/python/integrations/django/
 

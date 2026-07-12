@@ -85,6 +85,9 @@ class Order(models.Model):
                                           default=Decimal('0'))
     total = models.DecimalField(max_digits=10, decimal_places=2)
 
+    # open Stripe PaymentIntent, reused across pay attempts for this order
+    payment_intent_id = models.CharField(max_length=64, blank=True, default='')
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

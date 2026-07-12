@@ -108,3 +108,7 @@ td.num, th.num { text-align: right; }
 /* account */
 .auth-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; max-width: 800px; }
 @media (max-width: 700px) { .auth-grid { grid-template-columns: 1fr; } }
+
+/* stripe embedded payment */
+.payment-box { background: #fff; border: 1px solid #e7e5e4; border-radius: 8px; padding: 1rem; margin-top: 1.25rem; max-width: 480px; }
+.payment-box button { margin-top: 1rem; width: 100%; }
