@@ -1,3 +1,4 @@
+anthropic==0.116.0
 Django==6.0.7
 djangorestframework==3.17.1
 django-cors-headers==4.9.0

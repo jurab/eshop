@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'accounts',
     'products',
     'orders',
+    'support',
 ]
 
 AUTH_USER_MODEL = 'accounts.User'
@@ -62,6 +63,8 @@ REST_FRAMEWORK = {
         'user': '120/min',
         # shared budget for login + register (brute-force protection)
         'auth': '10/min',
+        # support chatbot: each request spends real Anthropic credits
+        'chat': '20/min',
     },
 }
 
@@ -164,6 +167,15 @@ if 'PYTEST_VERSION' in os.environ:
     # tests exercise the fake provider or mock stripe explicitly
     STRIPE_SECRET_KEY = ''
     STRIPE_WEBHOOK_SECRET = ''
+
+
+# Support chatbot (Anthropic Claude)
+# Key lives in .envrc; endpoint returns 503 when unset.
+
+ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
+
+if 'PYTEST_VERSION' in os.environ:
+    ANTHROPIC_API_KEY = ''  # tests mock the SDK explicitly
 
 
 # Error monitoring (Sentry)

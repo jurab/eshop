@@ -540,4 +540,61 @@ async function route() {
 window.addEventListener('hashchange', route);
 updateCartBadge();
 updateNav();
+
+// ---------- support chat widget ----------
+
+const chat = {
+  read() { return JSON.parse(localStorage.getItem('support_chat') || '[]'); },
+  write(h) { localStorage.setItem('support_chat', JSON.stringify(h)); },
+};
+
+function renderChat(pending = false) {
+  const box = document.getElementById('chat-messages');
+  const msgs = chat.read();
+  box.innerHTML = msgs.length
+    ? msgs.map(m => `<div class="chat-msg ${esc(m.role)}">${esc(m.content)}</div>`).join('')
+    : '<div class="chat-msg assistant">hi! ask me about products, orders or coupons.</div>';
+  if (pending) box.innerHTML += '<div class="chat-msg assistant pending">thinking…</div>';
+  box.scrollTop = box.scrollHeight;
+}
+
+document.getElementById('chat-toggle').addEventListener('click', () => {
+  const panel = document.getElementById('chat-panel');
+  panel.hidden = !panel.hidden;
+  if (!panel.hidden) { renderChat(); document.getElementById('chat-input').focus(); }
+});
+document.getElementById('chat-close').addEventListener('click', () => {
+  document.getElementById('chat-panel').hidden = true;
+});
+document.getElementById('chat-clear').addEventListener('click', () => {
+  chat.write([]);
+  renderChat();
+});
+
+document.getElementById('chat-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const input = document.getElementById('chat-input');
+  const message = input.value.trim();
+  if (!message) return;
+  const history = chat.read();
+  chat.write([...history, { role: 'user', content: message }]);
+  input.value = '';
+  input.disabled = true;
+  renderChat(true);
+  try {
+    const res = await api('/support/chat/', {
+      method: 'POST',
+      body: JSON.stringify({ message, history }),
+    });
+    chat.write(res.history);
+  } catch (err) {
+    chat.write([...chat.read(), {
+      role: 'assistant',
+      content: `sorry, something went wrong (${esc(err.body?.detail || err.message)}) — try again.`,
+    }]);
+  }
+  input.disabled = false;
+  renderChat();
+  input.focus();
+});
 route();

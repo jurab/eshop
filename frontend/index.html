@@ -20,6 +20,21 @@
   <main id="app">
     <p class="muted">loading…</p>
   </main>
+
+  <button id="chat-toggle" title="support chat">💬</button>
+  <div id="chat-panel" hidden>
+    <header>
+      <span>support</span>
+      <button id="chat-clear" class="chat-header-btn" title="clear conversation">↺</button>
+      <button id="chat-close" class="chat-header-btn" title="close">×</button>
+    </header>
+    <div id="chat-messages"></div>
+    <form id="chat-form">
+      <input id="chat-input" type="text" placeholder="ask about orders, products…" autocomplete="off">
+      <button type="submit">send</button>
+    </form>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>

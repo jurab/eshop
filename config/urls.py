@@ -8,6 +8,7 @@ from accounts.views import LoginView, LogoutView, MeView, RegisterView
 from orders.views import (AddressViewSet, CouponValidateView, OrderViewSet,
                           StripeWebhookView)
 from products.views import CategoryViewSet, ProductViewSet, ReviewViewSet
+from support.views import ChatView
 
 router = DefaultRouter()
 router.register('products', ProductViewSet, basename='product')
@@ -21,6 +22,7 @@ urlpatterns = [
     path('api/', include(router.urls)),
     path('api/coupons/validate/', CouponValidateView.as_view()),
     path('api/stripe/webhook/', StripeWebhookView.as_view()),
+    path('api/support/chat/', ChatView.as_view()),
     path('api/auth/register/', RegisterView.as_view()),
     path('api/auth/login/', LoginView.as_view()),
     path('api/auth/logout/', LogoutView.as_view()),
