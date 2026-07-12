@@ -119,6 +119,7 @@ td.num, th.num { text-align: right; }
   width: 3.25rem; height: 3.25rem; border-radius: 50%; font-size: 1.4rem;
   box-shadow: 0 4px 14px rgba(0,0,0,.2);
 }
+#chat-panel[hidden] { display: none; }
 #chat-panel {
   position: fixed; right: 1.25rem; bottom: 5.25rem; z-index: 50;
   width: min(22rem, calc(100vw - 2.5rem)); height: 28rem;
